@@ -319,8 +319,19 @@ class FaceCropper:
                 faces = self.face_classifier.detectMultiScale(gray, 1.1, 10)
                 if len(faces) >= 1:
                     has_face = True
-                    (x, y, w, h) = faces[0]
-                    cv2.rectangle(gray, (x, y), (x+w, y+h), (255, 0, 0), 2)
+                    # 寻找主体人脸
+                    mainIdx = 0
+                    maxFaceArea = 0
+                    for idx, face in enumerate(faces):
+                        tmp_x, tmp_y, tmp_w, tmp_h = face
+                        if tmp_w*tmp_h > maxFaceArea:
+                            maxFaceArea = tmp_w*tmp_h
+                            mainIdx = idx
+                    (x, y, w, h) = faces[mainIdx]
+                    # 太小大概率识别错误
+                    if w <= 100 or h <= 100:
+                        has_face = False
+                    # cv2.rectangle(gray, (x, y), (x+w, y+h), (255, 0, 0), 2)
                     # face_path = os.path.join(
                     #     fc.output_dir, f"face_{video_reader.current_frame}.png")
                     # cv2.imwrite(face_path, gray)
@@ -418,6 +429,21 @@ class FaceCropper:
         max_w = 0
         max_h = 0
         width, height = size
+        factor_w = 1.4
+        factor_h = 1.6
+        # 扩大
+        for idx, pos in enumerate(positions):
+            x, y, w, h = pos
+            center_x, center_y = int(x+w/2), int(y+h/2)
+            large_w = min(width, int(w*factor_w))
+            if large_w == width:
+                center_x = large_w/2
+            large_h = min(height, int(h*factor_h))
+            if large_h == height:
+                center_y = large_h/2
+            positions[idx] = (center_x-large_w/2, center_y -
+                              large_h/2, large_w, large_h)
+
         for x, y, w, h in positions:
             if w > max_w:
                 max_w = w
@@ -435,9 +461,19 @@ class FaceCropper:
             diff_w = max_w-w
             diff_h = max_h-h
 
-            fixed_x = x-np.floor(diff_w/2)
-            fixed_y = y-np.floor(diff_h/2)
-
+            fixed_x = x-np.floor(diff_w/2) if x > np.floor(diff_w/2) else x
+            fixed_y = y-np.floor(diff_h/2) if y > np.floor(diff_h/2) else y
+            if (fixed_x+max_w > width):
+                fixed_x = width - max_w
+            if (fixed_y+max_h > height):
+                fixed_y = height - max_h
+            if (fixed_x < 0):
+                max_w = width
+                fixed_x = 0
+            if (fixed_y < 0):
+                max_h = height
+                fixed_y = 0
+            print(fixed_x, fixed_y, max_w, max_h)
             fixed_xs.append(fixed_x)
             fixed_ys.append(fixed_y)
 
