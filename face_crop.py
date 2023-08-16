@@ -189,7 +189,7 @@ class FaceCropper:
     def __init__(self, input_dir, output_dir,
                  classifier_file='haarcascade_frontalface_default.xml',
                  min_clip_length=2.0, max_clip_length=5.0,
-                 audio_threshold=0.3, allowed_silence=0.5, allowed_no_face=0):
+                 audio_threshold=0.3, allowed_silence=0.1, allowed_no_face=0):
         """
         Constructor for a FaceCropper object.
 
@@ -497,6 +497,8 @@ class FaceCropper:
 
         new_frames = list()
 
+        sum_x=0
+        sum_y=0
         for i in range(0, len(fixed_xs)):
             x = int(fixed_xs[i])
             y = int(fixed_ys[i])
@@ -509,8 +511,13 @@ class FaceCropper:
                 x = width - max_w
             if (y+max_h > height):
                 y = height - max_h
+            sum_x+=x
+            sum_y+=y
+        avg_x = sum_x//len(frames)
+        avg_y = sum_y//len(frames)
+        for i in range(0,len(frames)):
             tmp_frame = cv2.cvtColor(
-                frames[i][y:y+max_h, x:x+max_w, :], cv2.COLOR_BGR2RGB)
+                frames[i][avg_y:avg_y+max_h, avg_x:avg_x+max_w, :], cv2.COLOR_BGR2RGB)
             tmp_frame = cv2.resize(
                 tmp_frame, (max_w, max_h), interpolation=cv2.INTER_CUBIC)
             new_frames.append(tmp_frame)
@@ -607,7 +614,7 @@ if __name__ == '__main__':
                         )
     parser.add_argument('-max_clip_length', type=float, default=5.0, help="Max length of a clip. (in seconds)"
                         )
-    parser.add_argument('-audio_threshold', type=float, default=0.3, help="Normalized amplitude threshold for audio to exceed."
+    parser.add_argument('-audio_threshold', type=float, default=0.1, help="Normalized amplitude threshold for audio to exceed."
                         )
     parser.add_argument('-allowed_silence', type=float, default=0.5, help="Max length allowed of audio under the amplitude threshold."
                         )
