@@ -189,7 +189,7 @@ class FaceCropper:
     def __init__(self, input_dir, output_dir,
                  classifier_file='haarcascade_frontalface_default.xml',
                  min_clip_length=2.0, max_clip_length=5.0,
-                 audio_threshold=0.3, allowed_silence=0.5):
+                 audio_threshold=0.3, allowed_silence=0.5, allowed_no_face=0):
         """
         Constructor for a FaceCropper object.
 
@@ -219,6 +219,7 @@ class FaceCropper:
         self.max_clip_length = max_clip_length
         self.audio_threshold = audio_threshold
         self.allowed_silence = allowed_silence
+        self.allowed_no_face = allowed_no_face
 
         # Validate input directory
         if not os.path.isdir(input_dir):
@@ -261,6 +262,9 @@ class FaceCropper:
 
         for video_file in video_files:
             self.segment_video(video_file)
+        tmp_in = os.path.join(fc.output_dir, "tmp_in.raw")
+        if os.path.exists(tmp_in):
+            os.remove(tmp_in)
 
     def segment_video(self, video_file):
         """
@@ -291,6 +295,7 @@ class FaceCropper:
         min_length = np.round(video_reader.frame_rate*self.min_clip_length)
         max_length = np.round(video_reader.frame_rate*self.max_clip_length)
         length_silence = np.round(video_reader.frame_rate*self.allowed_silence)
+        length_no_face = np.round(video_reader.frame_rate*self.allowed_no_face)
         num_silence = 0
 
         recording = False  # Whether or not we're retaining frames
@@ -317,6 +322,7 @@ class FaceCropper:
                 # gray_path = os.path.join(fc.output_dir,f"gray_{video_reader.current_frame}.png")
                 # cv2.imwrite(gray_path,gray)
                 faces = self.face_classifier.detectMultiScale(gray, 1.1, 10)
+                num_no_face = 0
                 if len(faces) >= 1:
                     has_face = True
                     # 寻找主体人脸
@@ -340,6 +346,10 @@ class FaceCropper:
                         if (np.abs(x-last_pos[0]) > width/10 or
                                 np.abs(y-last_pos[1]) > height/10):
                             has_face = False
+                            num_no_face += 1
+
+                if (has_face):
+                    num_no_face = 0
 
                 # Check if the audio is over a given threshold
 
@@ -355,7 +365,7 @@ class FaceCropper:
 
                 # If both conditions are met, record the current frame
 
-                if has_face and has_audio:
+                if (has_face or num_no_face < length_no_face) and has_audio:
                     if not recording:
                         recording = True
                         start_frame = video_reader.current_frame-1
@@ -378,7 +388,7 @@ class FaceCropper:
                                          video_reader.frame_rate,
                                          video_reader.sampling_rate, video_file, num_clips)
                         # 减少重复人脸的可能性
-                        video_reader.current_frame += 20
+                        # video_reader.current_frame += 20
                         num_clips += 1
 
                         del frames[:]
@@ -402,7 +412,7 @@ class FaceCropper:
                                          video_reader.frame_rate,
                                          video_reader.sampling_rate, video_file, num_clips)
                         # 减少重复人脸的可能性
-                        video_reader.current_frame += 20
+                        # video_reader.current_frame += 20
                         num_clips += 1
 
                     del frames[:]
@@ -429,8 +439,8 @@ class FaceCropper:
         max_w = 0
         max_h = 0
         width, height = size
-        factor_w = 1.4
-        factor_h = 1.6
+        factor_w = 1.8
+        factor_h = 2
         # 扩大
         for idx, pos in enumerate(positions):
             x, y, w, h = pos
@@ -461,18 +471,16 @@ class FaceCropper:
             diff_w = max_w-w
             diff_h = max_h-h
 
-            fixed_x = x-np.floor(diff_w/2) if x > np.floor(diff_w/2) else x
-            fixed_y = y-np.floor(diff_h/2) if y > np.floor(diff_h/2) else y
-            if (fixed_x+max_w > width):
-                fixed_x = width - max_w
-            if (fixed_y+max_h > height):
-                fixed_y = height - max_h
-            if (fixed_x < 0):
-                max_w = width
-                fixed_x = 0
-            if (fixed_y < 0):
-                max_h = height
-                fixed_y = 0
+            fixed_x = int(x-np.floor(diff_w/2)
+                          ) if x > np.floor(diff_w/2) else int(x)
+            fixed_y = int(y-np.floor(diff_h/2)
+                          ) if y > np.floor(diff_h/2) else int(y)
+            # if (fixed_x < 0):
+            #     max_w = width
+            #     fixed_x = 0
+            # if (fixed_y < 0):
+            #     max_h = height
+            #     fixed_y = 0
             print(fixed_x, fixed_y, max_w, max_h)
             fixed_xs.append(fixed_x)
             fixed_ys.append(fixed_y)
@@ -492,7 +500,15 @@ class FaceCropper:
         for i in range(0, len(fixed_xs)):
             x = int(fixed_xs[i])
             y = int(fixed_ys[i])
-
+            # 假出界
+            if (x < 0):
+                x = 0
+            if (y < 0):
+                y = 0
+            if (x+max_w > width):
+                x = width - max_w
+            if (y+max_h > height):
+                y = height - max_h
             tmp_frame = cv2.cvtColor(
                 frames[i][y:y+max_h, x:x+max_w, :], cv2.COLOR_BGR2RGB)
             tmp_frame = cv2.resize(
@@ -595,6 +611,8 @@ if __name__ == '__main__':
                         )
     parser.add_argument('-allowed_silence', type=float, default=0.5, help="Max length allowed of audio under the amplitude threshold."
                         )
+    parser.add_argument('-allowed_no_face', type=float, default=0,
+                        help="Max length allowed of video has no face.")
     args = parser.parse_args()
 
     fc = FaceCropper(
@@ -604,5 +622,6 @@ if __name__ == '__main__':
         max_clip_length=args.max_clip_length,
         audio_threshold=args.audio_threshold,
         allowed_silence=args.allowed_silence,
+        allowed_no_face=args.allowed_no_face,
     )
     fc.process()
