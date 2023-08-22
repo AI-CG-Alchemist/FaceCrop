@@ -134,7 +134,9 @@ class VideoReader:
                    '-f', 'image2pipe',
                    '-pix_fmt', 'rgb24',
                    '-vcodec', 'rawvideo', '-']
-        with open(fc.output_dir+"/tmp_in.raw", "wb") as f:
+        video_file = os.path.basename(self.video_path)
+        video_name = os.path.splitext(video_file)[0]
+        with open(os.path.join(fc.output_dir, f"{video_name}_tmp_in.raw"), "wb") as f:
             self.proc = subprocess.Popen(command, shell=True, stdout=f,
                                          stderr=subprocess.PIPE)
             self.proc.communicate()
@@ -188,7 +190,7 @@ class FaceCropper:
 
     def __init__(self, input_dir, output_dir,
                  classifier_file='haarcascade_frontalface_default.xml',
-                 min_clip_length=2.0, max_clip_length=5.0,
+                 min_clip_length=5.0, max_clip_length=10.0,
                  audio_threshold=0.3, allowed_silence=0.1, allowed_no_face=0):
         """
         Constructor for a FaceCropper object.
@@ -262,9 +264,9 @@ class FaceCropper:
 
         for video_file in video_files:
             self.segment_video(video_file)
-        tmp_in = os.path.join(fc.output_dir, "tmp_in.raw")
-        if os.path.exists(tmp_in):
-            os.remove(tmp_in)
+        video_path = os.path.join(self.input_dir, video_file)
+        if os.path.exists(video_path):
+            os.remove(video_path)
 
     def segment_video(self, video_file):
         """
@@ -306,8 +308,9 @@ class FaceCropper:
         last_pos = None
 
         print("\tBeginning scan...")
-
-        with open(fc.output_dir+"/tmp_in.raw", "rb") as f:
+        video_file = os.path.basename(video_reader.video_path)
+        video_name = os.path.splitext(video_file)[0]
+        with open(os.path.join(fc.output_dir, f"{video_name}_tmp_in.raw"), "rb") as f:
             video_frame, audio_frame = video_reader.next_frame(f=f)
             while video_frame is not None:
                 print("processing frame:" +
@@ -407,7 +410,7 @@ class FaceCropper:
                     if video_reader.current_frame-start_frame >= min_length:
                         a = start_frame*audio_frame.size
                         b = video_reader.current_frame*audio_frame.size-1
-                        
+
                         # frames = self.crop_frames(frames, positions,
                         #                           video_reader.frame_rate, video_reader.frame_size)
                         # self.write_video(frames, video_reader.audio[a:b],
@@ -427,6 +430,9 @@ class FaceCropper:
                     last_pos = None
 
                 video_frame, audio_frame = video_reader.next_frame(f=f)
+        tmp_in = os.path.join(fc.output_dir, f"{video_name}_tmp_in.raw")
+        if os.path.exists(tmp_in):
+            os.remove(tmp_in)
 
     def crop_video(self, positions, start_frame, end_frame, fps, video_file, size, num_video):
         max_w = 0
@@ -510,15 +516,12 @@ class FaceCropper:
         video_name = os.path.basename(video_name)
 
         # Get path of video
-        video_path = os.path.join('data', video_file)
+        video_path = os.path.join(self.input_dir, video_file)
         # Extract directory and create it in output, if needed
         video_dir = os.path.dirname(video_file)
         if not os.path.exists(os.path.join(self.output_dir, video_dir).replace("\\", "/")):
             os.makedirs(os.path.join(self.output_dir, video_dir))
-
-        os.makedirs(os.path.join(self.output_dir, video_name).replace(
-            "\\", "/"), exist_ok=True)
-        output_path = os.path.join(self.output_dir, video_name,
+        output_path = os.path.join(self.output_dir,
                                    '{}-{:03}{}'.format(video_name, num_video, video_ext)).replace("\\", "/")
         width, height = size
         scale = f'{width}:{height}'
@@ -529,200 +532,24 @@ class FaceCropper:
         command = f'ffmpeg -i {video_path} -ss {start} -t {time} -filter:v "crop={max_w}:{max_h}:{avg_x}:{avg_y}" {output_path}'
         subprocess.run(command)
 
-    # def crop_frames(self, frames, positions, fps, size):
-    #     """
-    #     Crops regions out of a set of frames, making sure that they are all
-    #     the same size.
-
-    #     Args:
-    #         frames (list<numpy.ndarray>): Frames to crop from.
-    #         positions (list<tuple>): x,y,w,h positions to crop.
-    #     Returns:
-    #         list<numpy.ndarray>, cropped frames.
-    #     """
-
-    #     max_w = 0
-    #     max_h = 0
-    #     width, height = size
-    #     factor_w = 1.8
-    #     factor_h = 2
-    #     # 扩大
-    #     for idx, pos in enumerate(positions):
-    #         x, y, w, h = pos
-    #         center_x, center_y = int(x+w/2), int(y+h/2)
-    #         large_w = min(width, int(w*factor_w))
-    #         if large_w == width:
-    #             center_x = large_w/2
-    #         large_h = min(height, int(h*factor_h))
-    #         if large_h == height:
-    #             center_y = large_h/2
-    #         positions[idx] = (center_x-large_w/2, center_y -
-    #                           large_h/2, large_w, large_h)
-
-    #     for x, y, w, h in positions:
-    #         if w > max_w:
-    #             max_w = w
-    #         if h > max_h:
-    #             max_h = h
-    #     # Fix x,y coords so they stretch out to fit the max width, height
-
-    #     fixed_xs = list()
-    #     fixed_ys = list()
-
-    #     for idx, pos in enumerate(positions):
-    #         x, y, w, h = pos
-    #         # print(x, y, w, h)
-
-    #         diff_w = max_w-w
-    #         diff_h = max_h-h
-
-    #         fixed_x = int(x-np.floor(diff_w/2)
-    #                       ) if x > np.floor(diff_w/2) else int(x)
-    #         fixed_y = int(y-np.floor(diff_h/2)
-    #                       ) if y > np.floor(diff_h/2) else int(y)
-    #         # if (fixed_x < 0):
-    #         #     max_w = width
-    #         #     fixed_x = 0
-    #         # if (fixed_y < 0):
-    #         #     max_h = height
-    #         #     fixed_y = 0
-    #         print(fixed_x, fixed_y, max_w, max_h)
-    #         fixed_xs.append(fixed_x)
-    #         fixed_ys.append(fixed_y)
-
-    #     # Low-pass x,y coords to stop crop from shaking so much
-    #     nyq = 0.5 * fps  # Nyquist rate
-    #     cutoff = 1/nyq  # Cutoff at 1Hz
-    #     b, a = scipy.signal.butter(8, cutoff)
-
-    #     fixed_xs = np.round(scipy.signal.filtfilt(b, a, fixed_xs))
-    #     fixed_ys = np.round(scipy.signal.filtfilt(b, a, fixed_ys))
-
-    #     # Get crops
-
-    #     new_frames = list()
-
-    #     sum_x = 0
-    #     sum_y = 0
-    #     for i in range(0, len(fixed_xs)):
-    #         x = int(fixed_xs[i])
-    #         y = int(fixed_ys[i])
-    #         # 假出界
-    #         if (x < 0):
-    #             x = 0
-    #         if (y < 0):
-    #             y = 0
-    #         if (x+max_w > width):
-    #             x = width - max_w
-    #         if (y+max_h > height):
-    #             y = height - max_h
-    #         sum_x += x
-    #         sum_y += y
-    #     avg_x = sum_x//len(frames)
-    #     avg_y = sum_y//len(frames)
-    #     for i in range(0, len(frames)):
-    #         tmp_frame = cv2.cvtColor(
-    #             frames[i][avg_y:avg_y+max_h, avg_x:avg_x+max_w, :], cv2.COLOR_BGR2RGB)
-    #         tmp_frame = cv2.resize(
-    #             tmp_frame, (max_w, max_h), interpolation=cv2.INTER_CUBIC)
-    #         new_frames.append(tmp_frame)
-    #     # for i, frame in enumerate(new_frames):
-    #     #     image_path = os.path.join(fc.output_dir, f"frame_{i:04d}.png")
-    #     #     cv2.imwrite(image_path, frame)
-    #     # cv2.imwrite(image_path,cv2.cvtColor(frame,cv2.COLOR_BGR2RGB))
-
-    #     return new_frames
-
-    # def write_video(self, frames, audio, frame_rate, sampling_rate,
-    #                 video_file, num_video):
-    #     """
-    #     Writes a set of frames and audio to a video by piping data into ffmpeg.
-
-    #     Args:
-    #         frames (list<numpy.ndarray>): Video frames to write.
-    #         audio (numpy.ndarray): Audio stream to write. Will be written to a
-    #             file first using scipy.
-    #         frame_rate (float): Frame rate of the video.
-    #         sampling_rate (int): Sampling rate of the audio.
-    #         video_path (str): Path to the source video.
-    #         num_video (int): The number to label this video with.
-    #     """
-
-    #     # Get name of video
-    #     video_name, video_ext = os.path.splitext(video_file)
-    #     video_name = os.path.basename(video_name)
-
-    #     # Extract directory and create it in output, if needd
-    #     video_dir = os.path.dirname(video_file)
-
-    #     if not os.path.exists(os.path.join(self.output_dir, video_dir).replace("\\", "/")):
-    #         os.makedirs(os.path.join(self.output_dir, video_dir))
-
-    #     # Write audio to temp file
-    #     audio_file = fc.output_dir+'/tmp.{}.wav'.format(video_name)
-    #     scipy.io.wavfile.write(audio_file, sampling_rate, audio)
-
-    #     os.makedirs(os.path.join(self.output_dir, video_name).replace(
-    #         "\\", "/"), exist_ok=True)
-    #     output_path = os.path.join(self.output_dir, video_name,
-    #                                '{}-{:03}{}'.format(video_name, num_video, video_ext)).replace("\\", "/")
-
-    #     print("\t\tWriting {} ({} frames)".format(output_path, len(frames)))
-
-    #     height, width, _ = frames[0].shape
-    #     # for i, frame in enumerate(frames):
-    #     #     image_path = os.path.join(
-    #     #         fc.output_dir, video_name, f"frame_{i:04d}.png")
-    #     #     cv2.imwrite(image_path, frame)
-    #     tmp_out_file = fc.output_dir+"/tmp_out.raw"
-    #     with open(tmp_out_file, 'wb') as f:
-    #         for frame in frames:
-    #             f.write(frame.tobytes())
-    #     command = ['ffmpeg',
-    #                '-y',
-    #                '-f', 'rawvideo',
-    #                '-vcodec', 'rawvideo',
-    #                '-s', '{}x{}'.format(width, height),
-    #                '-pix_fmt', 'rgb24',
-    #                '-r', str(frame_rate),
-    #                '-i', tmp_out_file,
-    #                '-i', audio_file,
-    #                #    '-an',
-    #                '-vcodec', 'h264',
-    #                '-c:a', 'aac',
-    #                output_path
-    #                ]
-    #     # pipe = subprocess.Popen(command, stdin=subprocess.PIPE,
-    #     #                         stderr=subprocess.PIPE)
-    #     # for frame in frames:
-    #     #     frame.tostring()
-    #     #     pipe.stdin.write(frame.tostring())
-    #     # pipe.stdin.close()
-    #     # if pipe.stderr is not None:
-    #     #     pipe.stderr.close()
-    #     # pipe.wait()
-    #     subprocess.run(command)
-    #     os.remove(tmp_out_file)
-    #     os.remove(audio_file)
-
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Crops short clips of people's faces out of a video."
                                      )
-    parser.add_argument('-data', default='data', help="Directory where data lives."
+    parser.add_argument('--data', default='data', help="Directory where data lives."
                         )
-    parser.add_argument('-output', default='output', help="Where resulting trims should be stored."
+    parser.add_argument('--output', default='output', help="Where resulting trims should be stored."
                         )
-    parser.add_argument('-min_clip_length', type=float, default=2.0, help="Min length of a clip. (in seconds)"
+    parser.add_argument('--min_clip_length', type=float, default=5.0, help="Min length of a clip. (in seconds)"
                         )
-    parser.add_argument('-max_clip_length', type=float, default=5.0, help="Max length of a clip. (in seconds)"
+    parser.add_argument('--max_clip_length', type=float, default=10.0, help="Max length of a clip. (in seconds)"
                         )
-    parser.add_argument('-audio_threshold', type=float, default=0.1, help="Normalized amplitude threshold for audio to exceed."
+    parser.add_argument('--audio_threshold', type=float, default=0.1, help="Normalized amplitude threshold for audio to exceed."
                         )
-    parser.add_argument('-allowed_silence', type=float, default=0.5, help="Max length allowed of audio under the amplitude threshold."
+    parser.add_argument('--allowed_silence', type=float, default=0.5, help="Max length allowed of audio under the amplitude threshold."
                         )
-    parser.add_argument('-allowed_no_face', type=float, default=0,
+    parser.add_argument('--allowed_no_face', type=float, default=0,
                         help="Max length allowed of video has no face.")
     args = parser.parse_args()
 
