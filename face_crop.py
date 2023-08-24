@@ -35,6 +35,8 @@ import numpy as np
 import numpy.fft
 import scipy.io.wavfile
 import scipy.signal
+from CompareImage import CompareImage
+from skimage.metrics import structural_similarity as ssim
 
 
 class VideoReader:
@@ -336,7 +338,7 @@ class FaceCropper:
                         if tmp_w*tmp_h > maxFaceArea:
                             maxFaceArea = tmp_w*tmp_h
                             mainIdx = idx
-                    (x, y, w, h) = faces[mainIdx]
+                    x, y, w, h = faces[mainIdx]
                     # 太小大概率识别错误
                     if w <= 100 or h <= 100:
                         has_face = False
@@ -350,6 +352,20 @@ class FaceCropper:
                                 np.abs(y-last_pos[1]) > height/10):
                             has_face = False
                             num_no_face += 1
+                    if len(frames) >= 1:
+                        compareImage = CompareImage()
+                        frame1 = os.path.join(fc.output_dir,f'{video_name}_frame{video_reader.current_frame-1}.jpg').replace("\\","/")
+                        frame2 = os.path.join(fc.output_dir,f'{video_name}_frame{video_reader.current_frame}.jpg').replace("\\","/")
+                        xx, yy, ww, hh = positions[-1]
+                        cv2.imwrite(frame1,frames[-1][int(yy):int(yy+hh),int(xx):int(xx+ww)])
+                        cv2.imwrite(frame2,video_frame[int(y):int(y+h),int(x):int(x+w)])
+                        similarity = compareImage.compare_image(frame1, frame2)
+                        os.remove(frame1)
+                        os.remove(frame2)
+                        # with open('output/similarity.txt','a',encoding='utf-8') as t:
+                        #     t.writelines(str(similarity)+"\n")
+                        if (similarity) <= 0.7:
+                            has_face = False
 
                 if (has_face):
                     num_no_face = 0
@@ -390,7 +406,7 @@ class FaceCropper:
                         # self.write_video(frames, video_reader.audio[a:b],
                         #                  video_reader.frame_rate,
                         #                  video_reader.sampling_rate, video_file, num_clips)
-                        self.crop_video(positions, start_frame, video_reader.current_frame,
+                        self.crop_video(positions, start_frame, video_reader.current_frame-1,
                                         video_reader.frame_rate,  video_file, video_reader.frame_size, num_clips)
                         # 减少重复人脸的可能性
                         # video_reader.current_frame += 20
@@ -416,7 +432,7 @@ class FaceCropper:
                         # self.write_video(frames, video_reader.audio[a:b],
                         #                  video_reader.frame_rate,
                         #                  video_reader.sampling_rate, video_file, num_clips)
-                        self.crop_video(positions, start_frame, video_reader.current_frame,
+                        self.crop_video(positions, start_frame, video_reader.current_frame-1,
                                         video_reader.frame_rate,  video_file, video_reader.frame_size, num_clips)
                         # 减少重复人脸的可能性
                         # video_reader.current_frame += 20
