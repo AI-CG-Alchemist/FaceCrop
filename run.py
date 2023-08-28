@@ -10,8 +10,10 @@ def task_function(prompt, downloadFolder):
     # 爬取视频
     if not os.path.exists(downloadFolder):
         os.mkdir(downloadFolder)
+    # os.system(
+    #     f'python BiliBili_Spider.py --prompt {prompt} --destFolder {downloadFolder} --num 2')
     os.system(
-        f'python BiliBili_Spider.py --prompt {prompt} --destFolder {downloadFolder} --num 2')
+        f'python Douyin_Spider.py --prompt {prompt} --destFolder {downloadFolder} --num 2')
     print(f"任务爬取关键词 '{prompt}' 相关视频并切割已完成。")
 
 

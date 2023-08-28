@@ -58,7 +58,7 @@ def solve():
             getBiliBiliVideo(link, bv, index, i)
             if index >= min(num, video_num):
                 txt=txt+'\n'
-                with open('./output/videos.txt','a',encoding='utf-8') as f: 
+                with open('./output/bilibili_videos.txt','a',encoding='utf-8') as f: 
                     f.writelines(txt)
                 return
     txt=txt+'\n'
