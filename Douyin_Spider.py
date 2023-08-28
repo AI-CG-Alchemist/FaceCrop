@@ -25,36 +25,14 @@ def fecthData(url):
 
 
 def download_video(url, videoname, dv):
-    # res = requests.get(url)
-    # if not os.path.exists(destFolder):
-    #     os.mkdir()
-    video_path = os.join(destFolder, f'{dv}.mp4')
-    # with open(video_path, 'wb') as open_file:
-    #     open_file.write(res.content)
-    session = requests.session()
-    session.options(url=url, headers=headers, verify=False)
-    begin = 0
-    end = 1025*512-1
-    flag = 0
-    while True:
-        headers.update({'Range': 'bytes=' + str(begin) + '-' + str(end)})
+    res = requests.get(url)
+    videoFolder = os.path.join(destFolder,dv)
+    if not os.path.exists(videoFolder):
+        os.mkdir(videoFolder)
+    video_path = os.path.join(videoFolder, f'{dv}.mp4')
+    with open(video_path, 'wb') as open_file:
+        open_file.write(res.content)
 
-        # 获取视频分片
-        res = session.get(url=url, headers=headers, verify=False)
-        if res.status_code != 416:
-            # 响应码不为为416时有数据
-            begin = end + 1
-            end = end + 1024*512
-        else:
-            headers.update({'Range': str(end + 1) + '-'})
-            res = session.get(url=url, headers=headers, verify=False)
-            flag = 1
-        with open(video_path.encode("utf-8").decode("utf-8"), 'ab') as fp:
-            fp.write(res.content)
-            fp.flush()
-        if flag == 1:
-            fp.close()
-            break
     return True
 
 # 需要手动区分是视频链接还是该视频的音频的链接，甚至有一些搜索结果是纯音频文件，用这个方法去掉那些音频
@@ -122,8 +100,8 @@ if __name__ == '__main__':
                     with open(douyin_videos_path, 'a', encoding='utf-8') as open_file:
                         open_file.write(args.prompt+" "+dv + '\n')
                         open_file.close()
-
                 print(f'第{count}个视频下载完毕')
+                os.system(f'python face_crop.py --data {os.path.join(destFolder,dv)} --required_similarity 0.7')
             except:
                 pass
         sun_s += 1

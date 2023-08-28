@@ -38,6 +38,8 @@ import scipy.signal
 from CompareImage import CompareImage
 from skimage.metrics import structural_similarity as ssim
 
+required_similarity = 0.75
+
 
 class VideoReader:
 
@@ -354,17 +356,21 @@ class FaceCropper:
                             num_no_face += 1
                     if len(frames) >= 1:
                         compareImage = CompareImage()
-                        frame1 = os.path.join(fc.output_dir,f'{video_name}_frame{video_reader.current_frame-1}.jpg').replace("\\","/")
-                        frame2 = os.path.join(fc.output_dir,f'{video_name}_frame{video_reader.current_frame}.jpg').replace("\\","/")
+                        frame1 = os.path.join(
+                            fc.output_dir, f'{video_name}_frame{video_reader.current_frame-1}.jpg').replace("\\", "/")
+                        frame2 = os.path.join(
+                            fc.output_dir, f'{video_name}_frame{video_reader.current_frame}.jpg').replace("\\", "/")
                         xx, yy, ww, hh = positions[-1]
-                        cv2.imwrite(frame1,frames[-1][int(yy):int(yy+hh),int(xx):int(xx+ww)])
-                        cv2.imwrite(frame2,video_frame[int(y):int(y+h),int(x):int(x+w)])
+                        cv2.imwrite(
+                            frame1, frames[-1][int(yy):int(yy+hh), int(xx):int(xx+ww)])
+                        cv2.imwrite(frame2, video_frame[int(
+                            y):int(y+h), int(x):int(x+w)])
                         similarity = compareImage.compare_image(frame1, frame2)
                         os.remove(frame1)
                         os.remove(frame2)
                         # with open('output/similarity.txt','a',encoding='utf-8') as t:
                         #     t.writelines(str(similarity)+"\n")
-                        if (similarity) <= 0.7:
+                        if (similarity) <= required_similarity:
                             has_face = False
 
                 if (has_face):
@@ -567,6 +573,8 @@ if __name__ == '__main__':
                         )
     parser.add_argument('--allowed_no_face', type=float, default=0,
                         help="Max length allowed of video has no face.")
+    parser.add_argument('--required_similarity', type=float, default=0.75,
+                        help="The required video face similarity for a qualifying video sequence")
     args = parser.parse_args()
 
     fc = FaceCropper(
@@ -578,4 +586,5 @@ if __name__ == '__main__':
         allowed_silence=args.allowed_silence,
         allowed_no_face=args.allowed_no_face,
     )
+    required_similarity = args.required_similarity
     fc.process()
