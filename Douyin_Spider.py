@@ -101,7 +101,7 @@ if __name__ == '__main__':
                         open_file.write(args.prompt+" "+dv + '\n')
                         open_file.close()
                 print(f'第{count}个视频下载完毕')
-                os.system(f'python face_crop.py --data {os.path.join(destFolder,dv)} --required_similarity 0.7')
+                os.system(f'python face_crop.py --data {os.path.join(destFolder,dv)} --required_similarity 0.6')
             except:
                 pass
         sun_s += 1

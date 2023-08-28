@@ -20,7 +20,7 @@ def task_function(prompt, downloadFolder):
 if __name__ == '__main__':
     processes = []
     tasks = []
-    max_processes = 3
+    max_processes = 1
     if not os.path.exists('./data'):
         os.mkdir('./data')
 

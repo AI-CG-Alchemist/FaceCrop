@@ -314,109 +314,138 @@ class FaceCropper:
         print("\tBeginning scan...")
         video_file = os.path.basename(video_reader.video_path)
         video_name = os.path.splitext(video_file)[0]
-        with open(os.path.join(fc.output_dir, f"{video_name}_tmp_in.raw"), "rb") as f:
-            video_frame, audio_frame = video_reader.next_frame(f=f)
-            while video_frame is not None:
-                print("processing frame:" +
-                      str(video_reader.current_frame) + "......")
-                # Check if there's a face in the video frame
+        try:
+            with open(os.path.join(fc.output_dir, f"{video_name}_tmp_in.raw"), "rb") as f:
+                video_frame, audio_frame = video_reader.next_frame(f=f)
+                while video_frame is not None:
+                    print("processing frame:" +
+                          str(video_reader.current_frame) + "......")
+                    # Check if there's a face in the video frame
 
-                has_face = False
-                has_audio = False
-                # image_path = os.path.join(fc.output_dir,f"frame_{video_reader.current_frame}.png")
-                # cv2.imwrite(image_path,video_frame)
-                gray = cv2.cvtColor(video_frame, cv2.COLOR_RGB2GRAY)
-                # gray_path = os.path.join(fc.output_dir,f"gray_{video_reader.current_frame}.png")
-                # cv2.imwrite(gray_path,gray)
-                faces = self.face_classifier.detectMultiScale(gray, 1.1, 10)
-                num_no_face = 0
-                if len(faces) >= 1:
-                    has_face = True
-                    # 寻找主体人脸
-                    mainIdx = 0
-                    maxFaceArea = 0
-                    for idx, face in enumerate(faces):
-                        tmp_x, tmp_y, tmp_w, tmp_h = face
-                        if tmp_w*tmp_h > maxFaceArea:
-                            maxFaceArea = tmp_w*tmp_h
-                            mainIdx = idx
-                    x, y, w, h = faces[mainIdx]
-                    # 太小大概率识别错误
-                    if w <= 100 or h <= 100:
-                        has_face = False
-                    # cv2.rectangle(gray, (x, y), (x+w, y+h), (255, 0, 0), 2)
-                    # face_path = os.path.join(
-                    #     fc.output_dir, f"face_{video_reader.current_frame}.png")
-                    # cv2.imwrite(face_path, gray)
-
-                    if last_pos is not None:
-                        if (np.abs(x-last_pos[0]) > width/10 or
-                                np.abs(y-last_pos[1]) > height/10):
-                            has_face = False
-                            num_no_face += 1
-                    if len(frames) >= 1:
-                        compareImage = CompareImage()
-                        frame1 = os.path.join(
-                            fc.output_dir, f'{video_name}_frame{video_reader.current_frame-1}.jpg').replace("\\", "/")
-                        frame2 = os.path.join(
-                            fc.output_dir, f'{video_name}_frame{video_reader.current_frame}.jpg').replace("\\", "/")
-                        xx, yy, ww, hh = positions[-1]
-                        cv2.imwrite(
-                            frame1, frames[-1][int(yy):int(yy+hh), int(xx):int(xx+ww)])
-                        cv2.imwrite(frame2, video_frame[int(
-                            y):int(y+h), int(x):int(x+w)])
-                        similarity = compareImage.compare_image(frame1, frame2)
-                        os.remove(frame1)
-                        os.remove(frame2)
-                        # with open('output/similarity.txt','a',encoding='utf-8') as t:
-                        #     t.writelines(str(similarity)+"\n")
-                        if (similarity) <= required_similarity:
-                            has_face = False
-
-                if (has_face):
+                    has_face = False
+                    has_audio = False
+                    # image_path = os.path.join(fc.output_dir,f"frame_{video_reader.current_frame}.png")
+                    # cv2.imwrite(image_path,video_frame)
+                    gray = cv2.cvtColor(video_frame, cv2.COLOR_RGB2GRAY)
+                    # gray_path = os.path.join(fc.output_dir,f"gray_{video_reader.current_frame}.png")
+                    # cv2.imwrite(gray_path,gray)
+                    faces = self.face_classifier.detectMultiScale(
+                        gray, 1.1, 10)
                     num_no_face = 0
+                    if len(faces) >= 1:
+                        has_face = True
+                        # 寻找主体人脸
+                        mainIdx = 0
+                        maxFaceArea = 0
+                        for idx, face in enumerate(faces):
+                            tmp_x, tmp_y, tmp_w, tmp_h = face
+                            if tmp_w*tmp_h > maxFaceArea:
+                                maxFaceArea = tmp_w*tmp_h
+                                mainIdx = idx
+                        x, y, w, h = faces[mainIdx]
+                        # 太小大概率识别错误
+                        if w <= 100 or h <= 100:
+                            has_face = False
+                        # cv2.rectangle(gray, (x, y), (x+w, y+h), (255, 0, 0), 2)
+                        # face_path = os.path.join(
+                        #     fc.output_dir, f"face_{video_reader.current_frame}.png")
+                        # cv2.imwrite(face_path, gray)
 
-                # Check if the audio is over a given threshold
+                        if last_pos is not None:
+                            if (np.abs(x-last_pos[0]) > width/10 or
+                                    np.abs(y-last_pos[1]) > height/10):
+                                has_face = False
+                                num_no_face += 1
+                        if len(frames) >= 1:
+                            compareImage = CompareImage()
+                            frame1 = os.path.join(
+                                fc.output_dir, f'{video_name}_frame{video_reader.current_frame-1}.jpg').replace("\\", "/")
+                            frame2 = os.path.join(
+                                fc.output_dir, f'{video_name}_frame{video_reader.current_frame}.jpg').replace("\\", "/")
+                            xx, yy, ww, hh = positions[-1]
+                            cv2.imwrite(
+                                frame1, frames[-1][int(yy):int(yy+hh), int(xx):int(xx+ww)])
+                            cv2.imwrite(frame2, video_frame[int(
+                                y):int(y+h), int(x):int(x+w)])
+                            similarity = compareImage.compare_image(
+                                frame1, frame2)
+                            os.remove(frame1)
+                            os.remove(frame2)
+                            # with open('output/similarity.txt','a',encoding='utf-8') as t:
+                            #     t.writelines(str(similarity)+"\n")
+                            if (similarity) <= required_similarity:
+                                has_face = False
 
-                amplitude = np.max(np.abs(audio_frame))
+                    if (has_face):
+                        num_no_face = 0
 
-                if amplitude >= self.audio_threshold:
-                    num_silence = 0
-                    has_audio = True
-                else:
-                    num_silence += 1
-                    if recording and num_silence < length_silence:
+                    # Check if the audio is over a given threshold
+
+                    amplitude = np.max(np.abs(audio_frame))
+
+                    if amplitude >= self.audio_threshold:
+                        num_silence = 0
                         has_audio = True
+                    else:
+                        num_silence += 1
+                        if recording and num_silence < length_silence:
+                            has_audio = True
 
-                # If both conditions are met, record the current frame
+                    # If both conditions are met, record the current frame
 
-                if (has_face or num_no_face < length_no_face) and has_audio:
-                    if not recording:
-                        recording = True
-                        start_frame = video_reader.current_frame-1
+                    if (has_face or num_no_face < length_no_face) and has_audio:
+                        if not recording:
+                            recording = True
+                            start_frame = video_reader.current_frame-1
 
-                    positions.append((x, y, w, h))
-                    last_pos = x, y
-                    frames.append(video_frame)
+                        positions.append((x, y, w, h))
+                        last_pos = x, y
+                        frames.append(video_frame)
 
-                    # If the number of recorded frames is over the max limit,
-                    # write now and reset
+                        # If the number of recorded frames is over the max limit,
+                        # write now and reset
 
-                    if video_reader.current_frame-start_frame >= max_length:
+                        if video_reader.current_frame-start_frame >= max_length:
 
-                        a = start_frame*audio_frame.size
-                        b = video_reader.current_frame*audio_frame.size-1
+                            a = start_frame*audio_frame.size
+                            b = video_reader.current_frame*audio_frame.size-1
 
-                        # frames = self.crop_frames(frames, positions,
-                        #                           video_reader.frame_rate, video_reader.frame_size)
-                        # self.write_video(frames, video_reader.audio[a:b],
-                        #                  video_reader.frame_rate,
-                        #                  video_reader.sampling_rate, video_file, num_clips)
-                        self.crop_video(positions, start_frame, video_reader.current_frame-1,
-                                        video_reader.frame_rate,  video_file, video_reader.frame_size, num_clips)
-                        # 减少重复人脸的可能性
-                        # video_reader.current_frame += 20
-                        num_clips += 1
+                            # frames = self.crop_frames(frames, positions,
+                            #                           video_reader.frame_rate, video_reader.frame_size)
+                            # self.write_video(frames, video_reader.audio[a:b],
+                            #                  video_reader.frame_rate,
+                            #                  video_reader.sampling_rate, video_file, num_clips)
+                            self.crop_video(positions, start_frame, video_reader.current_frame-1,
+                                            video_reader.frame_rate,  video_file, video_reader.frame_size, num_clips)
+                            # 减少重复人脸的可能性
+                            # video_reader.current_frame += 20
+                            num_clips += 1
+
+                            del frames[:]
+                            del positions[:]
+
+                            recording = False
+                            num_silence = 0
+                            last_pos = None
+
+                    # If conditions aren't met, but we're recording...
+
+                    elif recording:
+                        # Write if we're above the minimum limit
+                        if video_reader.current_frame-start_frame >= min_length:
+                            a = start_frame*audio_frame.size
+                            b = video_reader.current_frame*audio_frame.size-1
+
+                            # frames = self.crop_frames(frames, positions,
+                            #                           video_reader.frame_rate, video_reader.frame_size)
+                            # self.write_video(frames, video_reader.audio[a:b],
+                            #                  video_reader.frame_rate,
+                            #                  video_reader.sampling_rate, video_file, num_clips)
+                            self.crop_video(positions, start_frame, video_reader.current_frame-1,
+                                            video_reader.frame_rate,  video_file, video_reader.frame_size, num_clips)
+                            # 减少重复人脸的可能性
+                            # video_reader.current_frame += 20
+                            num_clips += 1
 
                         del frames[:]
                         del positions[:]
@@ -425,33 +454,10 @@ class FaceCropper:
                         num_silence = 0
                         last_pos = None
 
-                # If conditions aren't met, but we're recording...
-
-                elif recording:
-                    # Write if we're above the minimum limit
-                    if video_reader.current_frame-start_frame >= min_length:
-                        a = start_frame*audio_frame.size
-                        b = video_reader.current_frame*audio_frame.size-1
-
-                        # frames = self.crop_frames(frames, positions,
-                        #                           video_reader.frame_rate, video_reader.frame_size)
-                        # self.write_video(frames, video_reader.audio[a:b],
-                        #                  video_reader.frame_rate,
-                        #                  video_reader.sampling_rate, video_file, num_clips)
-                        self.crop_video(positions, start_frame, video_reader.current_frame-1,
-                                        video_reader.frame_rate,  video_file, video_reader.frame_size, num_clips)
-                        # 减少重复人脸的可能性
-                        # video_reader.current_frame += 20
-                        num_clips += 1
-
-                    del frames[:]
-                    del positions[:]
-
-                    recording = False
-                    num_silence = 0
-                    last_pos = None
-
-                video_frame, audio_frame = video_reader.next_frame(f=f)
+                    video_frame, audio_frame = video_reader.next_frame(f=f)
+        except Exception as e:
+            print(e)
+            pass
         tmp_in = os.path.join(fc.output_dir, f"{video_name}_tmp_in.raw")
         if os.path.exists(tmp_in):
             os.remove(tmp_in)
@@ -496,12 +502,12 @@ class FaceCropper:
                           ) if x > np.floor(diff_w/2) else int(x)
             fixed_y = int(y-np.floor(diff_h/2)
                           ) if y > np.floor(diff_h/2) else int(y)
-            # if (fixed_x < 0):
-            #     max_w = width
-            #     fixed_x = 0
-            # if (fixed_y < 0):
-            #     max_h = height
-            #     fixed_y = 0
+            if (fixed_x < 0):
+                max_w = width
+                fixed_x = 0
+            if (fixed_y < 0):
+                max_h = height
+                fixed_y = 0
             # print(fixed_x, fixed_y, max_w, max_h)
             fixed_xs.append(fixed_x)
             fixed_ys.append(fixed_y)
