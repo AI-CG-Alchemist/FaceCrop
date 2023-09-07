@@ -119,7 +119,7 @@ def getBiliBiliVideo(link, bv, index, i):
         print("文件存储地址:"+outPath)  # debug
         combineVideoAudio(videoPath, audioPath, outPath)
     print("第"+str(index)+"个视频下载完成")
-    os.system(f'python face_crop.py --data {os.path.join(destFolder,bv)}')
+    os.system(f'python face_crop.py --data {os.path.join(destFolder,bv)} --required_similarity 0.65')
 
 
 '''合并视频与音频'''

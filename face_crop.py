@@ -132,7 +132,7 @@ class VideoReader:
         """
         Opens the video stream from ffmpeg.
         """
-
+        
         command = ['ffmpeg',
                    '-i', self.video_path,
                    '-f', 'image2pipe',
@@ -194,7 +194,7 @@ class FaceCropper:
 
     def __init__(self, input_dir, output_dir,
                  classifier_file='haarcascade_frontalface_default.xml',
-                 min_clip_length=5.0, max_clip_length=10.0,
+                 min_clip_length=5.0, max_clip_length=50.0,
                  audio_threshold=0.3, allowed_silence=0.1, allowed_no_face=0):
         """
         Constructor for a FaceCropper object.
@@ -466,8 +466,8 @@ class FaceCropper:
         max_w = 0
         max_h = 0
         width, height = size
-        factor_w = 1.8
-        factor_h = 2
+        factor_w = 2.4
+        factor_h = 2.8
         # 扩大
         for idx, pos in enumerate(positions):
             x, y, w, h = pos
@@ -502,12 +502,12 @@ class FaceCropper:
                           ) if x > np.floor(diff_w/2) else int(x)
             fixed_y = int(y-np.floor(diff_h/2)
                           ) if y > np.floor(diff_h/2) else int(y)
-            if (fixed_x < 0):
-                max_w = width
-                fixed_x = 0
-            if (fixed_y < 0):
-                max_h = height
-                fixed_y = 0
+            # if (fixed_x < 0):
+            #     max_w = width
+            #     fixed_x = 0
+            # if (fixed_y < 0):
+            #     max_h = height
+            #     fixed_y = 0
             # print(fixed_x, fixed_y, max_w, max_h)
             fixed_xs.append(fixed_x)
             fixed_ys.append(fixed_y)
@@ -571,7 +571,7 @@ if __name__ == '__main__':
                         )
     parser.add_argument('--min_clip_length', type=float, default=5.0, help="Min length of a clip. (in seconds)"
                         )
-    parser.add_argument('--max_clip_length', type=float, default=10.0, help="Max length of a clip. (in seconds)"
+    parser.add_argument('--max_clip_length', type=float, default=50.0, help="Max length of a clip. (in seconds)"
                         )
     parser.add_argument('--audio_threshold', type=float, default=0.1, help="Normalized amplitude threshold for audio to exceed."
                         )
