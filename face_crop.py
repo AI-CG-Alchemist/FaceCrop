@@ -464,10 +464,8 @@ class FaceCropper:
             print(e)
             pass
         tmp_in = os.path.join(fc.output_dir, f"{video_name}_tmp_in.raw")
-        """
         if os.path.exists(tmp_in):
             os.remove(tmp_in)
-        """
 
     def crop_video(self, positions, start_frame, end_frame, fps, video_file, size, num_video):
         max_w = 0

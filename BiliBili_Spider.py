@@ -22,7 +22,7 @@ headers = {
     'Referer': 'https://search.bilibili.com',
     'Connection':'close',
     # 需要去首页寻找填一下
-    'Cookie': "buvid3=C7BB5835-3168-999D-D869-00DD2070B75310927infoc; b_nut=1690463110; _uuid=E38292410-BC93-7D6A-10BA8-CD98E610A6A6310147infoc; buvid4=70A5848B-AAC5-290C-B20F-4536AE00247118866-023072721-hMsvJD35An8mLG1L9vVCPw%3D%3D; CURRENT_FNVAL=4048; i-wanna-go-back=-1; FEED_LIVE_VERSION=V8; header_theme_version=CLOSE; nostalgia_conf=-1; rpdid=|(u)YRJ)JJ|k0J'uYm|~~Jk~l; buvid_fp_plain=undefined; CURRENT_QUALITY=80; fingerprint=c0814b4a8792c3c609dfdd2c97370428; buvid_fp=d08be02950197bda1c71216e6833e5df; b_ut=5; bp_video_offset_479496467=834804585674571815; bili_ticket=eyJhbGciOiJIUzI1NiIsImtpZCI6InMwMyIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTQyNjUzMDEsImlhdCI6MTY5NDAwNjEwMSwicGx0IjotMX0.JpmhMP0tx5G-kux0hI08fYDd5DWOs4JoClpwAFNTyZI; bili_ticket_expires=1694265301; innersign=0; b_lsid=EAD11169_18A73EF70B9; sid=pbq4lrr2; home_feed_column=4; browser_resolution=271-659; PVID=3"
+    'Cookie': "buvid3=C7BB5835-3168-999D-D869-00DD2070B75310927infoc; b_nut=1690463110; _uuid=E38292410-BC93-7D6A-10BA8-CD98E610A6A6310147infoc; buvid4=70A5848B-AAC5-290C-B20F-4536AE00247118866-023072721-hMsvJD35An8mLG1L9vVCPw%3D%3D; CURRENT_FNVAL=4048; i-wanna-go-back=-1; FEED_LIVE_VERSION=V8; header_theme_version=CLOSE; nostalgia_conf=-1; rpdid=|(u)YRJ)JJ|k0J'uYm|~~Jk~l; buvid_fp_plain=undefined; CURRENT_QUALITY=80; fingerprint=c0814b4a8792c3c609dfdd2c97370428; buvid_fp=d08be02950197bda1c71216e6833e5df; b_ut=5; bili_ticket=eyJhbGciOiJIUzI1NiIsImtpZCI6InMwMyIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTQyNjUzMDEsImlhdCI6MTY5NDAwNjEwMSwicGx0IjotMX0.JpmhMP0tx5G-kux0hI08fYDd5DWOs4JoClpwAFNTyZI; bili_ticket_expires=1694265301; PVID=3; innersign=0; b_lsid=5F86311B_18A755383BF; SESSDATA=dd9ba3a6%2C1709737533%2C98259%2A91; bili_jct=2a001b6acee8e59b3533c6ce7e576ec0; DedeUserID=479496467; DedeUserID__ckMd5=08b57da3bdbc65d8; bp_video_offset_479496467=839006107341946885; sid=p9g9ixck; home_feed_column=4; browser_resolution=538-659"
 }
 
 
@@ -66,10 +66,10 @@ def solve():
     with open('./output/videos.txt','a',encoding='utf-8') as f: 
         f.writelines(txt) 
         # 当爬取视频数量很多时开启防止频繁请求封ip
-        # secs = random.normalvariate(1, 0.4)
-        # if(secs <= 0):
-        #     secs = 1
-        # time.sleep(secs)
+        secs = random.normalvariate(1, 0.4)
+        if(secs <= 0):
+            secs = 1
+        time.sleep(secs)
 
 
 ''' 封装请求函数'''
