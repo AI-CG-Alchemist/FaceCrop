@@ -94,7 +94,11 @@ class VideoReader:
 
         self.frame_rate = float(fps.split()[0])
         self.sampling_rate = int(hz.split()[0])
-        self.frame_size = int(size.split('x')[0]), int(size.split('x')[1])
+        video = cv2.VideoCapture(self.video_path)
+        self.frame_size = int(video.get(cv2.CAP_PROP_FRAME_WIDTH)), int(
+            video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        print(self.frame_size)
+        video.release()
 
     get_info.size_regex = re.compile('[0-9]+x[0-9]+')
 
@@ -109,6 +113,7 @@ class VideoReader:
 
         command = 'ffmpeg -y -i {} -vn {}'.format(
             self.video_path, wav_file)
+        print(self.video_path)
         retval = os.system(command)
 
         if retval != 0:
@@ -132,7 +137,7 @@ class VideoReader:
         """
         Opens the video stream from ffmpeg.
         """
-        
+
         command = ['ffmpeg',
                    '-i', self.video_path,
                    '-f', 'image2pipe',
@@ -141,8 +146,9 @@ class VideoReader:
         video_file = os.path.basename(self.video_path)
         video_name = os.path.splitext(video_file)[0]
         with open(os.path.join(fc.output_dir, f"{video_name}_tmp_in.raw"), "wb") as f:
-            self.proc = subprocess.Popen(command, shell=True, stdout=f,
+            self.proc = subprocess.Popen(command, stdout=f,
                                          stderr=subprocess.PIPE)
+            self.proc.wait()
             self.proc.communicate()
 
     def next_frame(self, f):
@@ -194,7 +200,7 @@ class FaceCropper:
 
     def __init__(self, input_dir, output_dir,
                  classifier_file='haarcascade_frontalface_default.xml',
-                 min_clip_length=5.0, max_clip_length=50.0,
+                 min_clip_length=5.0, max_clip_length=10.0,
                  audio_threshold=0.3, allowed_silence=0.1, allowed_no_face=0):
         """
         Constructor for a FaceCropper object.
@@ -294,7 +300,6 @@ class FaceCropper:
         # State parameters
 
         width, height = video_reader.frame_size
-
         num_clips = 0  # The number of clips that have been created
         start_frame = 0  # Start frame of the current clip
 
@@ -319,7 +324,7 @@ class FaceCropper:
                 video_frame, audio_frame = video_reader.next_frame(f=f)
                 while video_frame is not None:
                     print("processing frame:" +
-                          str(video_reader.current_frame) + "......")
+                        str(video_reader.current_frame) + "......")
                     # Check if there's a face in the video frame
 
                     has_face = False
@@ -459,15 +464,17 @@ class FaceCropper:
             print(e)
             pass
         tmp_in = os.path.join(fc.output_dir, f"{video_name}_tmp_in.raw")
+        """
         if os.path.exists(tmp_in):
             os.remove(tmp_in)
+        """
 
     def crop_video(self, positions, start_frame, end_frame, fps, video_file, size, num_video):
         max_w = 0
         max_h = 0
         width, height = size
-        factor_w = 2.4
-        factor_h = 2.8
+        factor_w = 1.8
+        factor_h = 2
         # 扩大
         for idx, pos in enumerate(positions):
             x, y, w, h = pos
@@ -502,12 +509,12 @@ class FaceCropper:
                           ) if x > np.floor(diff_w/2) else int(x)
             fixed_y = int(y-np.floor(diff_h/2)
                           ) if y > np.floor(diff_h/2) else int(y)
-            # if (fixed_x < 0):
-            #     max_w = width
-            #     fixed_x = 0
-            # if (fixed_y < 0):
-            #     max_h = height
-            #     fixed_y = 0
+            if (fixed_x < 0):
+                max_w = width
+                fixed_x = 0
+            if (fixed_y < 0):
+                max_h = height
+                fixed_y = 0
             # print(fixed_x, fixed_y, max_w, max_h)
             fixed_xs.append(fixed_x)
             fixed_ys.append(fixed_y)
@@ -557,8 +564,19 @@ class FaceCropper:
         end = end_frame/fps
         time = end - start
 
+        max_h = 2 * max_h
+        if (avg_y + max_h) > height:
+            max_h = height - avg_y
+        avg_x = avg_x - 1/4 * max_w
+        if avg_x <= 0:
+            avg_x = 0
+        max_w = (3/2) * max_w
+        if (max_w + avg_x) > width:
+            max_w = width - avg_x
+
+            print(max_w, max_h, avg_x, avg_y)
         command = f'ffmpeg -i {video_path} -ss {start} -t {time} -filter:v "crop={max_w}:{max_h}:{avg_x}:{avg_y}" {output_path}'
-        subprocess.run(command)
+        os.system(command)
 
 
 if __name__ == '__main__':
@@ -571,7 +589,7 @@ if __name__ == '__main__':
                         )
     parser.add_argument('--min_clip_length', type=float, default=5.0, help="Min length of a clip. (in seconds)"
                         )
-    parser.add_argument('--max_clip_length', type=float, default=50.0, help="Max length of a clip. (in seconds)"
+    parser.add_argument('--max_clip_length', type=float, default=10.0, help="Max length of a clip. (in seconds)"
                         )
     parser.add_argument('--audio_threshold', type=float, default=0.1, help="Normalized amplitude threshold for audio to exceed."
                         )
