@@ -63,7 +63,7 @@ def solve():
                     f.writelines(txt)
                 return
     txt=txt+'\n'
-    with open('./output/videos.txt','a',encoding='utf-8') as f: 
+    with open('./output/bilibili_videos.txt','a',encoding='utf-8') as f: 
         f.writelines(txt) 
         # 当爬取视频数量很多时开启防止频繁请求封ip
         secs = random.normalvariate(1, 0.4)
