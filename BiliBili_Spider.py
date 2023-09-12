@@ -20,9 +20,8 @@ num = 0
 headers = {
     "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3970.5 Safari/537.36',
     'Referer': 'https://search.bilibili.com',
-    'Connection':'close',
     # 需要去首页寻找填一下
-    'Cookie': "buvid3=C7BB5835-3168-999D-D869-00DD2070B75310927infoc; b_nut=1690463110; _uuid=E38292410-BC93-7D6A-10BA8-CD98E610A6A6310147infoc; buvid4=70A5848B-AAC5-290C-B20F-4536AE00247118866-023072721-hMsvJD35An8mLG1L9vVCPw%3D%3D; CURRENT_FNVAL=4048; i-wanna-go-back=-1; FEED_LIVE_VERSION=V8; header_theme_version=CLOSE; nostalgia_conf=-1; rpdid=|(u)YRJ)JJ|k0J'uYm|~~Jk~l; buvid_fp_plain=undefined; CURRENT_QUALITY=80; fingerprint=c0814b4a8792c3c609dfdd2c97370428; buvid_fp=d08be02950197bda1c71216e6833e5df; b_ut=5; bili_ticket=eyJhbGciOiJIUzI1NiIsImtpZCI6InMwMyIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTQyNjUzMDEsImlhdCI6MTY5NDAwNjEwMSwicGx0IjotMX0.JpmhMP0tx5G-kux0hI08fYDd5DWOs4JoClpwAFNTyZI; bili_ticket_expires=1694265301; PVID=3; innersign=0; b_lsid=5F86311B_18A755383BF; SESSDATA=dd9ba3a6%2C1709737533%2C98259%2A91; bili_jct=2a001b6acee8e59b3533c6ce7e576ec0; DedeUserID=479496467; DedeUserID__ckMd5=08b57da3bdbc65d8; bp_video_offset_479496467=839006107341946885; sid=p9g9ixck; home_feed_column=4; browser_resolution=538-659"
+    'Cookie': "buvid3=FCAD8A5A-9F75-E526-A52C-7BA4EDB2A5E177734infoc; i-wanna-go-back=-1; b_ut=7; _uuid=1BDF9A9C-A5F1-EA16-F2AC-254693E2A2101078215infoc; FEED_LIVE_VERSION=V8; buvid_fp=fdd45430966fff07b5c9e1a8d1af0076; b_nut=1690704778; CURRENT_FNVAL=4048; rpdid=|(u)YRJ)J|~J0J'uYm|~|R~)~; buvid4=E06F4432-D323-B57D-6971-F3DB5F92553E01005-023073016-hMsvJD35An8mLG1L9vVCPw%3D%3D; SESSDATA=8eb1f935%2C1706256801%2Cdcc8c%2A71Q4YST0y47zS-1I5Nhibb67HpZrrlgyXiW1sZqqBo9guk3j_e-JnCIWaLQ8VGl2BmtPYJygAAQwA; bili_jct=496d2a8b08a92222009d5271e63be66f; DedeUserID=479496467; DedeUserID__ckMd5=08b57da3bdbc65d8; header_theme_version=CLOSE; PVID=1; bili_ticket=eyJhbGciOiJIUzI1NiIsImtpZCI6InMwMyIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2OTQ2MTQ3NjYsImlhdCI6MTY5NDM1NTU2NiwicGx0IjotMX0.vv16ozh_cuOO8pLw0ukkTCjQkE5RS3vMNiiiatAvtB8; bili_ticket_expires=1694614766; bp_video_offset_479496467=839737815150362630; innersign=0; b_lsid=554E2596_18A88DB5104; sid=ftqco90j; home_feed_column=4; browser_resolution=988-996"
 }
 
 
@@ -48,28 +47,28 @@ def solve():
         url = baseURL+"&page="+str(page)
         data = fetchData(url)["data"]
         video_list = data["result"]
-        txt = prompt
         for i, v in enumerate(video_list):
-            index += 1
-            link = v['arcurl']
-            bv = v['bvid']
-            txt=txt+' '+bv
-            print("视频访问地址:"+link)  # debug
-            print("视频bv号:"+bv)  # debug
-            getBiliBiliVideo(link, bv, index, i)
-            if index >= min(num, video_num):
-                txt=txt+'\n'
+            try:
+                txt = prompt
+                index += 1
+                link = v['arcurl']
+                bv = v['bvid']
+                txt=txt+' '+bv+'\n'
+                print("视频访问地址:"+link)  # debug
+                print("视频bv号:"+bv)  # debug
+                getBiliBiliVideo(link, bv, index, i)
                 with open('./output/bilibili_videos.txt','a',encoding='utf-8') as f: 
-                    f.writelines(txt)
-                return
-    txt=txt+'\n'
-    with open('./output/bilibili_videos.txt','a',encoding='utf-8') as f: 
-        f.writelines(txt) 
-        # 当爬取视频数量很多时开启防止频繁请求封ip
-        secs = random.normalvariate(1, 0.4)
-        if(secs <= 0):
-            secs = 1
-        time.sleep(secs)
+                    f.writelines(txt) 
+                if index >= min(num, video_num):
+                    return
+                # 当爬取视频数量很多时开启防止频繁请求封ip
+                secs = random.normalvariate(1, 0.4)
+                if(secs <= 0):
+                    secs = 1
+                time.sleep(secs)
+            except Exception as e:
+                print(e)
+                pass
 
 
 ''' 封装请求函数'''
@@ -89,14 +88,15 @@ def getBiliBiliVideo(link, bv, index, i):
     res = session.get(url=link, headers=headers, verify=False)
     _element = etree.HTML(res.content)
 
+    # 9.12:改成4，之前是3突然跑不通了
     videoPlayInfo = str(_element.xpath(
-        '//head/script[3]/text()')[0].encode('utf-8').decode('utf-8'))[20:]
+        '//head/script[4]/text()')[0].encode('utf-8').decode('utf-8'))[20:]
 
     videoJson = json.loads(videoPlayInfo)
     try:
+         # videoURL = videoURL = videoJson['data']['durl'][0]['url']
         flag = 0
     except Exception:
-        # videoURL = videoURL = videoJson['data']['durl'][0]['url']
         print("早期视频暂时不提供下载！")
         return
 

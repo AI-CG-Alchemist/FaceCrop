@@ -200,7 +200,7 @@ class FaceCropper:
 
     def __init__(self, input_dir, output_dir,
                  classifier_file='haarcascade_frontalface_default.xml',
-                 min_clip_length=5.0, max_clip_length=10.0,
+                 min_clip_length=5.0, max_clip_length=60.0,
                  audio_threshold=0.3, allowed_silence=0.1, allowed_no_face=0):
         """
         Constructor for a FaceCropper object.
@@ -323,8 +323,9 @@ class FaceCropper:
             with open(os.path.join(fc.output_dir, f"{video_name}_tmp_in.raw"), "rb") as f:
                 video_frame, audio_frame = video_reader.next_frame(f=f)
                 while video_frame is not None:
-                    print("processing frame:" +
-                        str(video_reader.current_frame) + "......")
+                    if(video_reader.current_frame%10==0):
+                        print("processing frame:" +
+                            str(video_reader.current_frame) + "......")
                     # Check if there's a face in the video frame
 
                     has_face = False
@@ -587,7 +588,7 @@ if __name__ == '__main__':
                         )
     parser.add_argument('--min_clip_length', type=float, default=5.0, help="Min length of a clip. (in seconds)"
                         )
-    parser.add_argument('--max_clip_length', type=float, default=10.0, help="Max length of a clip. (in seconds)"
+    parser.add_argument('--max_clip_length', type=float, default=60.0, help="Max length of a clip. (in seconds)"
                         )
     parser.add_argument('--audio_threshold', type=float, default=0.1, help="Normalized amplitude threshold for audio to exceed."
                         )

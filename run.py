@@ -10,17 +10,17 @@ def task_function(prompt, downloadFolder):
     # 爬取视频
     if not os.path.exists(downloadFolder):
         os.mkdir(downloadFolder)
+    # os.system(
+    #     f'python Douyin_Spider.py --prompt {prompt} --destFolder {downloadFolder} --num 10')
     os.system(
-        f'python Douyin_Spider.py --prompt {prompt} --destFolder {downloadFolder} --num 10')
-    os.system(
-        f'python BiliBili_Spider.py --prompt {prompt} --destFolder {downloadFolder} --num 10')
+        f'python BiliBili_Spider.py --prompt {prompt} --destFolder {downloadFolder} --num 7')
     print(f"任务爬取关键词 '{prompt}' 相关视频并切割已完成。")
 
 
 if __name__ == '__main__':
     processes = []
     tasks = []
-    max_processes = 2
+    max_processes = 5
     if not os.path.exists('./data'):
         os.mkdir('./data')
 
